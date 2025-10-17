@@ -9,6 +9,8 @@ import com.note.exception.NoteExpiredException;
 import com.note.exception.NoteNotFoundException;
 import com.note.mapper.NoteMapper;
 import com.note.repository.NoteRepository;
+import com.note.util.AESUtil;
+import com.note.util.HtmlSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,9 +37,21 @@ public class NoteService {
         String urlCode = generateUniqueUrlCode();
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(request.getDurationInHours());
 
+        String sanitizedContent = HtmlSanitizer.sanitize(request.getContent());
+        if (sanitizedContent.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be empty");
+        }
+
+        String encryptedContent;
+        try {
+            encryptedContent = AESUtil.encrypt(sanitizedContent);
+        } catch (Exception e) {
+            throw new RuntimeException("Content encryption failed", e);
+        }
+
         Note note = Note.builder()
                 .urlCode(urlCode)
-                .content(request.getContent())
+                .content(encryptedContent)
                 .expiresAt(expiresAt)
                 .build();
 
@@ -68,7 +82,21 @@ public class NoteService {
             throw new NoteExpiredException("Cannot update expired note");
         }
 
-        note.setContent(request.getContent());
+
+        String sanitizedContent = HtmlSanitizer.sanitize(request.getContent());
+
+        if (sanitizedContent.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be empty");
+        }
+
+        String encryptedContent;
+        try {
+            encryptedContent = AESUtil.encrypt(sanitizedContent);
+        } catch (Exception e) {
+            throw new RuntimeException("Content encryption failed during update", e);
+        }
+
+        note.setContent(encryptedContent);
         Note updatedNote = noteRepository.save(note);
 
         log.info("Updated note with URL code: {}", urlCode);
