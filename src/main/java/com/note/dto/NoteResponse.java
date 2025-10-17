@@ -18,5 +18,4 @@ public class NoteResponse {
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Boolean isExpired;
 }

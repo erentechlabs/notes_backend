@@ -39,7 +39,6 @@ public class NoteService {
                 .urlCode(urlCode)
                 .content(request.getContent())
                 .expiresAt(expiresAt)
-                .isExpired(false)
                 .build();
 
         Note savedNote = noteRepository.save(note);
@@ -92,8 +91,7 @@ public class NoteService {
         return sb.toString();
     }
 
-    //@Scheduled(cron = "0 0 * * * *")
-    @Scheduled(cron = "0 */3 * * * *")
+    @Scheduled(cron = "0 */15 * * * *")
     @Transactional
     public void deleteExpiredNotes() {
         int count = noteRepository.deleteExpiredNotes(LocalDateTime.now());

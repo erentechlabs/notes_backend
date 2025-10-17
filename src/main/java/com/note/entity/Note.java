@@ -39,17 +39,7 @@ public class Note {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
-    private Boolean isExpired = false;
-
-    @PrePersist
-    public void prePersist() {
-        if (this.isExpired == null) {
-            this.isExpired = false;
-        }
-    }
-
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt) || Boolean.TRUE.equals(isExpired);
+        return LocalDateTime.now().isAfter(expiresAt);
     }
 }

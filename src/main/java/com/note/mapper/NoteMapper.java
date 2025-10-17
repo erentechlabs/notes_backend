@@ -19,7 +19,6 @@ public class NoteMapper {
                 .expiresAt(note.getExpiresAt())
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
-                .isExpired(note.getIsExpired())
                 .build();
     }
 
