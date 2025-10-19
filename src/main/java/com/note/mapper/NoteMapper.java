@@ -3,21 +3,15 @@ package com.note.mapper;
 import com.note.dto.CreateNoteResponse;
 import com.note.dto.NoteResponse;
 import com.note.entity.Note;
-import com.note.util.AESUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class NoteMapper {
 
-    public NoteResponse toNoteResponse(Note note) {
+    public NoteResponse toNoteResponse(Note note, String decryptedContent) {
         if (note == null) return null;
 
-        String decryptedContent;
-        try {
-            decryptedContent = AESUtil.decrypt(note.getContent());
-        } catch (Exception e) {
-            decryptedContent = "[Failed to decrypt]";
-        }
         return NoteResponse.builder()
                 .urlCode(note.getUrlCode())
                 .content(decryptedContent)
@@ -28,9 +22,7 @@ public class NoteMapper {
     }
 
     public CreateNoteResponse toCreateNoteResponse(Note note) {
-        if (note == null) {
-            return null;
-        }
+        if (note == null) return null;
 
         return CreateNoteResponse.builder()
                 .urlCode(note.getUrlCode())
@@ -39,7 +31,10 @@ public class NoteMapper {
                 .build();
     }
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     private String buildShareUrl(String urlCode) {
-        return "/notes/" + urlCode;
+        return baseUrl + "/notes/" + urlCode;
     }
 }

@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/notes")
+@RequestMapping("/api/v1/notes")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class NoteController {

@@ -19,11 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NoteService {
-
 
     private static final String CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int URL_CODE_LENGTH = 8;
@@ -34,20 +34,11 @@ public class NoteService {
 
     @Transactional
     public CreateNoteResponse createNote(CreateNoteRequest request) {
+        String sanitizedContent = sanitizeAndValidate(request.getContent());
+        String encryptedContent = encryptContent(sanitizedContent);
+
         String urlCode = generateUniqueUrlCode();
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(request.getDurationInHours());
-
-        String sanitizedContent = HtmlSanitizer.sanitize(request.getContent());
-        if (sanitizedContent.isBlank()) {
-            throw new IllegalArgumentException("Content cannot be empty");
-        }
-
-        String encryptedContent;
-        try {
-            encryptedContent = AESUtil.encrypt(sanitizedContent);
-        } catch (Exception e) {
-            throw new RuntimeException("Content encryption failed", e);
-        }
 
         Note note = Note.builder()
                 .urlCode(urlCode)
@@ -63,60 +54,29 @@ public class NoteService {
 
     @Transactional(readOnly = true)
     public NoteResponse getNoteByUrlCode(String urlCode) {
-        Note note = noteRepository.findByUrlCode(urlCode)
-                .orElseThrow(() -> new NoteNotFoundException("Note not found with URL code: " + urlCode));
+        Note note = findNoteByUrlCode(urlCode);
+        validateNoteNotExpired(note);
 
-        if (note.isExpired()) {
-            throw new NoteExpiredException("Note has expired");
-        }
+        String decryptedContent = decryptContent(note.getContent());
 
-        return noteMapper.toNoteResponse(note);
+        return noteMapper.toNoteResponse(note, decryptedContent);
     }
 
     @Transactional
     public NoteResponse updateNote(String urlCode, UpdateNoteRequest request) {
-        Note note = noteRepository.findByUrlCode(urlCode)
-                .orElseThrow(() -> new NoteNotFoundException("Note not found with URL code: " + urlCode));
+        Note note = findNoteByUrlCode(urlCode);
+        validateNoteNotExpired(note);
 
-        if (note.isExpired()) {
-            throw new NoteExpiredException("Cannot update expired note");
-        }
-
-
-        String sanitizedContent = HtmlSanitizer.sanitize(request.getContent());
-
-        if (sanitizedContent.isBlank()) {
-            throw new IllegalArgumentException("Content cannot be empty");
-        }
-
-        String encryptedContent;
-        try {
-            encryptedContent = AESUtil.encrypt(sanitizedContent);
-        } catch (Exception e) {
-            throw new RuntimeException("Content encryption failed during update", e);
-        }
+        String sanitizedContent = sanitizeAndValidate(request.getContent());
+        String encryptedContent = encryptContent(sanitizedContent);
 
         note.setContent(encryptedContent);
         Note updatedNote = noteRepository.save(note);
 
         log.info("Updated note with URL code: {}", urlCode);
-        return noteMapper.toNoteResponse(updatedNote);
-    }
 
-    private String generateUniqueUrlCode() {
-        String urlCode;
-        do {
-            urlCode = generateRandomString(URL_CODE_LENGTH);
-        } while (noteRepository.existsByUrlCode(urlCode));
-        return urlCode;
-    }
-
-    private String generateRandomString(int length) {
-        StringBuilder sb = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            sb.append(CHARACTERS.charAt(RANDOM.nextInt(CHARACTERS.length())));
-        }
-        return sb.toString();
+        String decryptedContent = decryptContent(updatedNote.getContent());
+        return noteMapper.toNoteResponse(updatedNote, decryptedContent);
     }
 
     @Scheduled(cron = "0 */15 * * * *")
@@ -126,5 +86,60 @@ public class NoteService {
         if (count > 0) {
             log.info("Deleted {} expired notes", count);
         }
+    }
+
+    private Note findNoteByUrlCode(String urlCode) {
+        return noteRepository.findByUrlCode(urlCode)
+                .orElseThrow(() -> new NoteNotFoundException("Note not found with URL code: " + urlCode));
+    }
+
+    private void validateNoteNotExpired(Note note) {
+        if (note.isExpired()) {
+            throw new NoteExpiredException("Note has expired");
+        }
+    }
+
+    private String sanitizeAndValidate(String content) {
+        String sanitizedContent = HtmlSanitizer.sanitize(content);
+
+        if (sanitizedContent == null || sanitizedContent.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be empty");
+        }
+
+        return sanitizedContent;
+    }
+
+    private String encryptContent(String content) {
+        try {
+            return AESUtil.encrypt(content);
+        } catch (Exception e) {
+            log.error("Encryption failed", e);
+            throw new RuntimeException("Content encryption failed", e);
+        }
+    }
+
+    private String decryptContent(String encryptedContent) {
+        try {
+            return AESUtil.decrypt(encryptedContent);
+        } catch (Exception e) {
+            log.error("Decryption failed", e);
+            throw new RuntimeException("Content decryption failed", e);
+        }
+    }
+
+    private String generateUniqueUrlCode() {
+        String urlCode;
+        do {
+            urlCode = generateRandomString();
+        } while (noteRepository.existsByUrlCode(urlCode));
+        return urlCode;
+    }
+
+    private String generateRandomString() {
+        StringBuilder sb = new StringBuilder(URL_CODE_LENGTH);
+        for (int i = 0; i < URL_CODE_LENGTH; i++) {
+            sb.append(CHARACTERS.charAt(RANDOM.nextInt(CHARACTERS.length())));
+        }
+        return sb.toString();
     }
 }
