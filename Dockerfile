@@ -1,14 +1,17 @@
-
 FROM eclipse-temurin:25-jdk-jammy as builder
 WORKDIR /opt/app
 
-RUN chmod +x mvnw
-
+# Copy Maven wrapper files first
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 
+# Make mvnw executable AFTER copying it
+RUN chmod +x mvnw
+
+# Download dependencies
 RUN ./mvnw dependency:go-offline
 
+# Copy source and build
 COPY ./src ./src
 RUN ./mvnw clean install
 
@@ -16,8 +19,10 @@ FROM eclipse-temurin:25-jre-jammy
 WORKDIR /opt/app
 EXPOSE 8080
 
-RUN chmod +x /opt/app/note.jar
-
+# Copy the jar from builder stage
 COPY --from=builder /opt/app/target/note-0.0.1-SNAPSHOT.jar /opt/app/note.jar
+
+# No need to chmod the jar file - it doesn't need execute permission
+# Java will read it, not execute it directly
 
 ENTRYPOINT ["java", "-jar", "/opt/app/note.jar"]
