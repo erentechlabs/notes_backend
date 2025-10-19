@@ -206,22 +206,6 @@ The API provides descriptive error messages for common scenarios:
 - `410 Gone`: Note has expired
 - `400 Bad Request`: Invalid input or validation errors
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 👨‍💻 Author
-
-Eren Tech Labs
-
 ## 🔗 Related Projects
 
 This is the backend API. A frontend application can be built to consume these endpoints.
