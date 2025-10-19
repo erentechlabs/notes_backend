@@ -13,6 +13,6 @@ FROM eclipse-temurin:25-jre-jammy
 WORKDIR /opt/app
 EXPOSE 8080
 
-COPY --from=builder /opt/app/target/note-0.0.1-SNAPSHOT.jar /opt/app/note.jar
+COPY --from=builder /opt/app/target/*.jar /opt/app/*.jar
 
-ENTRYPOINT ["java", "-jar", "/opt/app/note.jar"]
+ENTRYPOINT ["java", "-jar", "/opt/app/*.jar"]
