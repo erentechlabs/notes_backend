@@ -11,23 +11,28 @@ A secure, temporary note-sharing backend service built with Spring Boot. Create 
 - **Auto Cleanup**: Scheduled task to automatically delete expired notes
 - **RESTful API**: Clean REST endpoints for note management
 - **PostgreSQL Database**: Persistent storage with JPA/Hibernate
+- **Cloud-Ready**: Google Cloud SQL support for seamless cloud deployment
+- **Docker Support**: Containerized deployment with included Dockerfile
 
 ## 🛠️ Technology Stack
 
-- **Java 25**
+- **Java 21**
 - **Spring Boot 3.5.6**
 - **Spring Data JPA**
 - **PostgreSQL**
 - **Lombok**
-- **Bucket4j** (Rate Limiting)
-- **JSoup** (HTML Sanitization)
+- **Bucket4j 8.0.1** (Rate Limiting)
+- **JSoup 1.21.2** (HTML Sanitization)
+- **Google Cloud SQL Connector** (Cloud deployment support)
 - **Maven**
+- **Docker** (Containerization)
 
 ## 📦 Prerequisites
 
-- Java 25 or higher
-- PostgreSQL 12+ (running on port 5432)
+- Java 21 or higher
+- PostgreSQL 12+
 - Maven 3.6+
+- Docker (optional, for containerized deployment)
 
 ## 🚀 Getting Started
 
@@ -39,15 +44,27 @@ Create a PostgreSQL database:
 CREATE DATABASE notesdb;
 ```
 
-### 2. Configure Database
+### 2. Configure Environment Variables
 
-Update `src/main/resources/application.properties` with your database credentials:
+Set the required environment variables:
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/notesdb
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+```bash
+# Windows (PowerShell)
+$env:NOTE_SECRET_KEY="your-16-character-secret-key-here"
+$env:APP_BASE_URL="http://localhost:8080"
+$env:POSTGRESQL_URL="jdbc:postgresql://localhost:5432/notesdb"
+$env:POSTGRESQL_USER="your_username"
+$env:POSTGRESQL_PASSWORD="your_password"
+
+# Linux/macOS
+export NOTE_SECRET_KEY="your-16-character-secret-key-here"
+export APP_BASE_URL="http://localhost:8080"
+export POSTGRESQL_URL="jdbc:postgresql://localhost:5432/notesdb"
+export POSTGRESQL_USER="your_username"
+export POSTGRESQL_PASSWORD="your_password"
 ```
+
+**Important**: The application uses environment variables for sensitive configuration. Never commit credentials to version control.
 
 ### 3. Build the Project
 
@@ -137,19 +154,35 @@ API endpoints are protected with rate limiting to prevent abuse.
 
 ## ⚙️ Configuration
 
-Key configuration properties in `application.properties`:
+The application is configured via environment variables for security. Key settings in `application.properties`:
 
 ```properties
 # Server Configuration
 server.port=8080
 
-# Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/notesdb
-spring.jpa.hibernate.ddl-auto=update
+# Secret Key for AES Encryption
+note.secret.key=${NOTE_SECRET_KEY}
 
-# Connection Pool
+# Base URL
+app.base-url=${APP_BASE_URL}
+
+# PostgreSQL Database Configuration
+spring.datasource.url=${POSTGRESQL_URL}
+spring.datasource.username=${POSTGRESQL_USER}
+spring.datasource.password=${POSTGRESQL_PASSWORD}
+
+# JPA Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Connection Pool (HikariCP)
 spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=20000
+spring.datasource.hikari.idle-timeout=300000
+
+# Logging
+logging.level.com.note=DEBUG
 ```
 
 ## 🧹 Automatic Cleanup
@@ -186,6 +219,65 @@ src/
 └── test/
 ```
 
+## 🐳 Docker Deployment
+
+The project includes a Dockerfile for containerized deployment.
+
+### Build Docker Image
+
+```bash
+docker build -t note-api .
+```
+
+### Run with Docker
+
+```bash
+docker run -p 8080:8080 \
+  -e NOTE_SECRET_KEY="your-16-character-secret-key-here" \
+  -e APP_BASE_URL="http://localhost:8080" \
+  -e POSTGRESQL_URL="jdbc:postgresql://host.docker.internal:5432/notesdb" \
+  -e POSTGRESQL_USER="your_username" \
+  -e POSTGRESQL_PASSWORD="your_password" \
+  note-api
+```
+
+### Docker Compose (Optional)
+
+Create a `docker-compose.yml` for running the application with PostgreSQL:
+
+```yaml
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: notesdb
+      POSTGRES_USER: your_username
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      NOTE_SECRET_KEY: "your-16-character-secret-key-here"
+      APP_BASE_URL: "http://localhost:8080"
+      POSTGRESQL_URL: "jdbc:postgresql://db:5432/notesdb"
+      POSTGRESQL_USER: "your_username"
+      POSTGRESQL_PASSWORD: "your_password"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+```
+
+Run with: `docker-compose up`
+
 ## 🧪 Testing
 
 Run tests with:
@@ -206,10 +298,28 @@ The API provides descriptive error messages for common scenarios:
 - `410 Gone`: Note has expired
 - `400 Bad Request`: Invalid input or validation errors
 
+## ☁️ Cloud Deployment
+
+The application includes support for Google Cloud SQL via the `postgres-socket-factory` dependency. This enables seamless deployment to Google Cloud Platform with Cloud SQL PostgreSQL instances.
+
+For Google Cloud deployment, configure the `POSTGRESQL_URL` environment variable with the Cloud SQL connection string:
+
+```bash
+jdbc:postgresql:///<database>?cloudSqlInstance=<instance-connection-name>&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+```
+
 ## 🔗 Related Projects
 
 This is the backend API. A frontend application can be built to consume these endpoints.
 
+## 🔐 Security Best Practices
+
+- **Encryption Key**: Always use a strong, randomly generated 16-character key for `NOTE_SECRET_KEY`
+- **Environment Variables**: Never commit sensitive credentials to version control
+- **Production**: Use a secrets management system (e.g., AWS Secrets Manager, Azure Key Vault, Google Secret Manager)
+- **HTTPS**: Always use HTTPS in production environments
+- **Database**: Ensure PostgreSQL is configured with strong authentication and network security
+
 ---
 
-**Note**: Remember to change the default AES encryption key in `AESUtil.java` for production use and store it securely using environment variables or a secrets management system.
+**Built with Spring Boot 3.5.6 and Java 21**
