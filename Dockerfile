@@ -1,3 +1,4 @@
+# Build version: 2025-10-20-v2
 FROM eclipse-temurin:25-jdk-jammy as builder
 WORKDIR /opt/app
 
@@ -14,6 +15,6 @@ FROM eclipse-temurin:25-jre-jammy
 WORKDIR /opt/app
 EXPOSE 8080
 
-COPY --from=builder /opt/app/target/*.jar /opt/app/*.jar
+COPY --from=builder /opt/app/target/*.jar /opt/app/app.jar
 
-ENTRYPOINT ["java", "-jar", "/opt/app/*.jar"]
+ENTRYPOINT ["java", "-jar", "/opt/app/app.jar"]
