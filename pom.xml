@@ -76,12 +76,6 @@
             <version>8.0.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.google.cloud.sql</groupId>
-            <artifactId>postgres-socket-factory</artifactId>
-            <version>1.26.1</version>
-        </dependency>
-
     </dependencies>
 
     <build>
