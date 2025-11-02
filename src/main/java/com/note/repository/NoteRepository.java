@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 @Repository
@@ -18,5 +18,5 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
     @Modifying
     @Query("DELETE FROM Note note WHERE note.expiresAt < :now")
-    int deleteExpiredNotes(LocalDateTime now);
+    int deleteExpiredNotes(ZonedDateTime now);
 }

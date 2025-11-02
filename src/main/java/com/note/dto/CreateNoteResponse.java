@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Builder
@@ -15,5 +15,5 @@ public class CreateNoteResponse {
 
     private String urlCode;
     private String shareUrl;
-    private LocalDateTime expiresAt;
+    private ZonedDateTime expiresAt;
 }

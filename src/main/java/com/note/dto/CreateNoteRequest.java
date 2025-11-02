@@ -1,9 +1,6 @@
 package com.note.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +19,10 @@ public class CreateNoteRequest {
     @Min(value = 1, message = "Duration must be at least 1 hour")
     @NotNull(message = "Duration in hours is required")
     private Integer durationInHours;
+
+    @NotNull(message = "Is read only is required")
+    private Boolean isReadOnly;
+
+    @NotNull(message = "Is partial editing only is required")
+    private Boolean isPartialEditingOnly;
 }

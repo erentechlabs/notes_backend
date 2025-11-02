@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "notes")
@@ -29,17 +31,23 @@ public class Note {
     private String content;
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt;
+    private ZonedDateTime expiresAt;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime  createdAt;
 
     @UpdateTimestamp
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isReadOnly;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isPartialEditingOnly;
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
+        return ZonedDateTime.now(ZoneId.of("UTC")).isAfter(expiresAt);
     }
 }

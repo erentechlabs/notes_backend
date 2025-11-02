@@ -18,7 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -38,12 +39,14 @@ public class NoteService {
         String encryptedContent = encryptContent(sanitizedContent);
 
         String urlCode = generateUniqueUrlCode();
-        LocalDateTime expiresAt = LocalDateTime.now().plusHours(request.getDurationInHours());
+        ZonedDateTime expiresAt = ZonedDateTime.now(ZoneId.of("UTC")).plusHours(request.getDurationInHours());
 
         Note note = Note.builder()
                 .urlCode(urlCode)
                 .content(encryptedContent)
                 .expiresAt(expiresAt)
+                .isPartialEditingOnly(request.getIsPartialEditingOnly())
+                .isReadOnly(request.getIsReadOnly())
                 .build();
 
         Note savedNote = noteRepository.save(note);
@@ -66,6 +69,7 @@ public class NoteService {
     public NoteResponse updateNote(String urlCode, UpdateNoteRequest request) {
         Note note = findNoteByUrlCode(urlCode);
         validateNoteNotExpired(note);
+        validateNoteNotReadOnly(note);
 
         String sanitizedContent = sanitizeAndValidate(request.getContent());
         String encryptedContent = encryptContent(sanitizedContent);
@@ -82,7 +86,7 @@ public class NoteService {
     @Scheduled(cron = "0 */15 * * * *")
     @Transactional
     public void deleteExpiredNotes() {
-        int count = noteRepository.deleteExpiredNotes(LocalDateTime.now());
+        int count = noteRepository.deleteExpiredNotes(ZonedDateTime.now(ZoneId.of("UTC")));
         if (count > 0) {
             log.info("Deleted {} expired notes", count);
         }
@@ -94,9 +98,11 @@ public class NoteService {
     }
 
     private void validateNoteNotExpired(Note note) {
-        if (note.isExpired()) {
-            throw new NoteExpiredException("Note has expired");
-        }
+        if (note.isExpired()) throw new NoteExpiredException("Note has expired");
+    }
+
+    private void validateNoteNotReadOnly(Note note) {
+        if (note.getIsReadOnly()) throw new NoteExpiredException("Note is read-only");
     }
 
     private String sanitizeAndValidate(String content) {

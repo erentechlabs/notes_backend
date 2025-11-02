@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Builder
@@ -15,7 +15,9 @@ public class NoteResponse {
 
     private String urlCode;
     private String content;
-    private LocalDateTime expiresAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Boolean isReadOnly;
+    private Boolean isPartialEditingOnly;
+    private ZonedDateTime  expiresAt;
+    private ZonedDateTime createdAt;
+    private ZonedDateTime  updatedAt;
 }

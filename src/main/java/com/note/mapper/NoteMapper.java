@@ -18,6 +18,8 @@ public class NoteMapper {
                 .expiresAt(note.getExpiresAt())
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
+                .isPartialEditingOnly(note.getIsPartialEditingOnly())
+                .isReadOnly(note.getIsReadOnly())
                 .build();
     }
 
