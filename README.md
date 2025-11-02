@@ -5,27 +5,28 @@ A secure, temporary note-sharing backend service built with Spring Boot. Create 
 ## 📋 Features
 
 - **Temporary Notes**: Create notes with customizable expiration times (1-730 hours)
-- **Secure Storage**: AES encryption for note content
+- **Secure Storage**: AES encryption for note content with configurable secret keys
 - **HTML Sanitization**: Protection against XSS attacks using JSoup
-- **Rate Limiting**: Request throttling using Bucket4j
+- **Rate Limiting**: Request throttling using Bucket4j with configurable limits
 - **Auto Cleanup**: Scheduled task to automatically delete expired notes
-- **RESTful API**: Clean REST endpoints for note management
-- **PostgreSQL Database**: Persistent storage with JPA/Hibernate
-- **Cloud-Ready**: Google Cloud SQL support for seamless cloud deployment
-- **Docker Support**: Containerized deployment with included Dockerfile
+- **RESTful API**: Clean REST endpoints for note management with comprehensive validation
+- **PostgreSQL Database**: Persistent storage with JPA/Hibernate and optimized connection pooling
+- **Cloud-Ready**: Google Cloud Platform support with runtime configuration
+- **Docker Support**: Multi-stage containerized deployment with optimized image size
+- **Production Ready**: Comprehensive error handling, logging, and monitoring capabilities
 
 ## 🛠️ Technology Stack
 
-- **Java 21**
+- **Java 21** (Eclipse Temurin JRE)
 - **Spring Boot 3.5.6**
-- **Spring Data JPA**
-- **PostgreSQL**
-- **Lombok**
+- **Spring Data JPA** with Hibernate
+- **PostgreSQL** with HikariCP connection pooling
+- **Lombok** for code generation
 - **Bucket4j 8.0.1** (Rate Limiting)
 - **JSoup 1.21.2** (HTML Sanitization)
-- **Google Cloud SQL Connector** (Cloud deployment support)
-- **Maven**
-- **Docker** (Containerization)
+- **Google Cloud SQL Connector 1.26.1** (Cloud deployment support)
+- **Maven** (Build automation)
+- **Docker** (Multi-stage containerization)
 
 ## 📦 Prerequisites
 
@@ -157,32 +158,42 @@ API endpoints are protected with rate limiting to prevent abuse.
 The application is configured via environment variables for security. Key settings in `application.properties`:
 
 ```properties
-# Server Configuration
+# Application Configuration
+spring.application.name=note
 server.port=8080
 
-# Secret Key for AES Encryption
+# Security Configuration
 note.secret.key=${NOTE_SECRET_KEY}
-
-# Base URL
 app.base-url=${APP_BASE_URL}
 
 # PostgreSQL Database Configuration
 spring.datasource.url=${POSTGRESQL_URL}
 spring.datasource.username=${POSTGRESQL_USER}
 spring.datasource.password=${POSTGRESQL_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
 
-# JPA Configuration
+# JPA/Hibernate Configuration
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
 
-# Connection Pool (HikariCP)
+# Connection Pool Configuration (HikariCP)
 spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=5
 spring.datasource.hikari.connection-timeout=20000
 spring.datasource.hikari.idle-timeout=300000
 
-# Logging
-logging.level.com.note=DEBUG
+# Logging Configuration
+logging.level.com.example.notes=DEBUG
+logging.level.org.springframework.web=INFO
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# Time Zone Configuration
+spring.jackson.time-zone=UTC
+spring.jpa.properties.hibernate.jdbc.time_zone=UTC
 ```
 
 ## 🧹 Automatic Cleanup
@@ -205,23 +216,43 @@ The application includes a scheduled task that runs every 15 minutes to automati
 src/
 ├── main/
 │   ├── java/com/note/
-│   │   ├── configuration/     # Rate limiting & CORS config
-│   │   ├── controller/        # REST controllers
+│   │   ├── configuration/     # Rate limiting & CORS configuration
+│   │   │   ├── RateLimitFilter.java
+│   │   │   └── WebConfig.java
+│   │   ├── controller/        # REST API controllers
+│   │   │   └── NoteController.java
 │   │   ├── dto/               # Data Transfer Objects
+│   │   │   ├── CreateNoteRequest.java
+│   │   │   ├── CreateNoteResponse.java
+│   │   │   ├── NoteResponse.java
+│   │   │   └── UpdateNoteRequest.java
 │   │   ├── entity/            # JPA entities
-│   │   ├── exception/         # Custom exceptions
+│   │   │   └── Note.java
+│   │   ├── exception/         # Custom exceptions & global handler
+│   │   │   ├── entity/
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   ├── NoteExpiredException.java
+│   │   │   └── NoteNotFoundException.java
 │   │   ├── mapper/            # Entity-DTO mappers
+│   │   │   └── NoteMapper.java
 │   │   ├── repository/        # JPA repositories
-│   │   ├── service/           # Business logic
-│   │   └── util/              # Utility classes (AES, HTML sanitization)
+│   │   │   └── NoteRepository.java
+│   │   ├── service/           # Business logic layer
+│   │   │   └── NoteService.java
+│   │   ├── util/              # Utility classes
+│   │   │   ├── AESUtil.java   # AES encryption/decryption
+│   │   │   └── HtmlSanitizer.java # XSS protection
+│   │   └── NoteApplication.java
 │   └── resources/
+│       ├── static/            # Static web resources
+│       ├── templates/         # Template files
 │       └── application.properties
-└── test/
+└── test/                      # Test classes
 ```
 
 ## 🐳 Docker Deployment
 
-The project includes a Dockerfile for containerized deployment.
+The project includes a multi-stage Dockerfile for optimized containerized deployment using Eclipse Temurin JDK/JRE.
 
 ### Build Docker Image
 
@@ -240,6 +271,13 @@ docker run -p 8080:8080 \
   -e POSTGRESQL_PASSWORD="your_password" \
   note-api
 ```
+
+### Docker Image Details
+
+The Dockerfile uses a multi-stage build process:
+- **Builder Stage**: Eclipse Temurin JDK 21 for compilation
+- **Runtime Stage**: Eclipse Temurin JRE 21 for optimized runtime
+- **Optimizations**: Dependency caching, offline dependency resolution, and minimal runtime image
 
 ### Docker Compose (Optional)
 
@@ -300,13 +338,27 @@ The API provides descriptive error messages for common scenarios:
 
 ## ☁️ Cloud Deployment
 
-The application includes support for Google Cloud SQL via the `postgres-socket-factory` dependency. This enables seamless deployment to Google Cloud Platform with Cloud SQL PostgreSQL instances.
+### Google Cloud Platform
+
+The application includes comprehensive Google Cloud Platform support:
+
+- **Google Cloud SQL**: PostgreSQL connector with socket factory (v1.26.1)
+- **Runtime Configuration**: Java 21 runtime specified in `project.toml`
+- **Cloud SQL Connection**: Seamless integration with Cloud SQL PostgreSQL instances
 
 For Google Cloud deployment, configure the `POSTGRESQL_URL` environment variable with the Cloud SQL connection string:
 
 ```bash
 jdbc:postgresql:///<database>?cloudSqlInstance=<instance-connection-name>&socketFactory=com.google.cloud.sql.postgres.SocketFactory
 ```
+
+### Google Cloud Run Deployment
+
+The application is optimized for Google Cloud Run with:
+- Multi-stage Docker builds for smaller images
+- Java 21 runtime configuration
+- Environment-based configuration
+- Health check endpoints ready
 
 ## 🔗 Related Projects
 
@@ -320,6 +372,22 @@ This is the backend API. A frontend application can be built to consume these en
 - **HTTPS**: Always use HTTPS in production environments
 - **Database**: Ensure PostgreSQL is configured with strong authentication and network security
 
+## 🚀 Recent Updates
+
+- **Enhanced Docker Support**: Multi-stage builds with Eclipse Temurin for optimized container images
+- **Improved Configuration**: Comprehensive application properties with timezone and logging configuration
+- **Google Cloud Ready**: Full GCP integration with Cloud SQL connector and runtime configuration
+- **Production Optimizations**: Enhanced connection pooling, logging, and error handling
+- **Security Enhancements**: Improved AES encryption utilities and HTML sanitization
+
+## 📈 Performance & Monitoring
+
+- **Connection Pooling**: HikariCP with optimized pool settings (10 max, 5 min idle)
+- **Database Optimization**: PostgreSQL dialect with proper timezone handling
+- **Logging**: Structured logging with configurable levels for debugging and monitoring
+- **Rate Limiting**: Bucket4j implementation for API protection
+- **Auto-cleanup**: Scheduled tasks for expired note removal
+
 ---
 
-**Built with Spring Boot 3.5.6 and Java 21**
+**Built with Spring Boot 3.5.6 and Java 21 | Optimized for Cloud Deployment**
